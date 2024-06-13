@@ -5,8 +5,6 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
 from rest_framework.views import APIView
-from django.db.models import Q
-
 from .models import UserProfile, Course, Lesson, Video, Comment, LikeVideo, DislikeVideo, Follow
 from .serializers import (UserSerializer, UserProfileSerializer, CourseSerializer, LessonSerializer, VideoSerializer,
                           CommentSerializer, LikeVideoSerializer, DislikeVideoSerializer, FollowSerializer,
@@ -151,7 +149,8 @@ class LessonViewSet(viewsets.ModelViewSet):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response({'message': 'You are not allowed to create a lesson for this course'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'message': 'You are not allowed to create a lesson for this course'},
+                            status=status.HTTP_403_FORBIDDEN)
 
     def update(self, request, *args, **kwargs):
         """Agar lessonning agasi bo'lmasa yangilay olmasligi uchun"""
@@ -216,7 +215,8 @@ class VideoViewSet(viewsets.ModelViewSet):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response({'message': 'You are not allowed to create a video for this lesson'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'message': 'You are not allowed to create a video for this lesson'},
+                            status=status.HTTP_403_FORBIDDEN)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -438,5 +438,3 @@ def send_mail_to_email(recive_emails: list, subject: str, message: str):
     email_from = settings.EMAIL_HOST_USER
     recipient_list = recive_emails
     send_mail(subject, message, email_from, recipient_list)
-
-

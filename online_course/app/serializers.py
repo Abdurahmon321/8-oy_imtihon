@@ -70,5 +70,5 @@ class FollowSerializer(serializers.ModelSerializer):
 
 
 class SendMailSerializer(serializers.Serializer):
-    subject = serializers.CharField(max_length=250)
-    message = serializers.CharField()
+    subject = serializers.CharField(max_length=250, help_text="Habarning mavzusi")
+    message = serializers.CharField(help_text="Habarning matni")

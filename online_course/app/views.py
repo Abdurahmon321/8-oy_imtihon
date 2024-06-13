@@ -14,12 +14,14 @@ from .serializers import (UserSerializer, UserProfileSerializer, CourseSerialize
 
 
 class UserViewSet(viewsets.ModelViewSet):
+    """BU userlarni qoshish, ko'rish, o'chirish va yangilash """
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
 
 
 class UserRegistrationAPIView(generics.CreateAPIView):
+    """Bu userni registratisyadan o'tkazish uchun"""
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
@@ -34,6 +36,7 @@ class UserRegistrationAPIView(generics.CreateAPIView):
         subject = "Hush kelibsiz online kurs dunyosiga"
         message = f"Salom {user.username}, bizning sajifamizda ro'yxatdan o'tganingizdan hursandmiz"
 
+        """Emailga ro'yxatdan o'tkanligi haqida ma'lumot jo'natish uchun"""
         send_mail_to_email(emails, subject, message)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -44,6 +47,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = UserProfileSerializer
 
     def update(self, request, *args, **kwargs):
+        """Agar user profile o'ziniki bo'lsa yangilash uchun"""
         instance = self.get_object()
         if instance.user == request.user:
             serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -54,6 +58,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             return Response({'message': 'You are not allowed to update this profile'}, status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, *args, **kwargs):
+        """Agar user profile o'ziniki bo'lsa o'chirish uchun"""
         instance = self.get_object()
         if instance.user == request.user:
             self.perform_destroy(instance)
@@ -62,6 +67,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             return Response({'message': 'You are not allowed to delete this profile'}, status=status.HTTP_403_FORBIDDEN)
 
     def retrieve(self, request, *args, **kwargs):
+        """user profiledan ma'lumotlarini ko'rish uchun """
         instance = self.get_object()
 
         courses = Course.objects.filter(author=instance.user)
@@ -99,6 +105,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
 
     def update(self, request, *args, **kwargs):
+        """Agar kurs o'ziniki bo'lsa yangilash uchun """
         instance = self.get_object()
         if request.user.is_superuser or instance.author == request.user:
             serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -109,6 +116,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Response({'message': 'You are not allowed to update this course'}, status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, *args, **kwargs):
+        """Agar kurs o'ziniki bo'lsa o'chirish uchun """
         instance = self.get_object()
         if request.user.is_superuser or instance.author == request.user:
             self.perform_destroy(instance)
@@ -124,6 +132,7 @@ class LessonViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         course_id = request.data.get('course')
         course = Course.objects.get(pk=course_id)
+        """ Agar tanlaydigan kursning egasi bo'lmasa lesson qo'sha olmasligi uchun """
         if request.user.is_superuser or course.author == request.user:
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
@@ -132,6 +141,8 @@ class LessonViewSet(viewsets.ModelViewSet):
             emails = []
             for follow in Follow.objects.filter(followed_user=course.author):
                 emails.append(follow.follower.email)
+
+            """Foydalnuvchi lesson yani dars qo'shganida uning followerlarining emaillariga habar jo'natish uchun """
 
             subject = "Siz obuna bo'lgan foydalanuvchi yangi dars qo'shdi"
             message = (f'Foydalnuvchi usernami: {course.author.username}, emaili: {course.author.email},\n '
@@ -143,6 +154,7 @@ class LessonViewSet(viewsets.ModelViewSet):
             return Response({'message': 'You are not allowed to create a lesson for this course'}, status=status.HTTP_403_FORBIDDEN)
 
     def update(self, request, *args, **kwargs):
+        """Agar lessonning agasi bo'lmasa yangilay olmasligi uchun"""
         instance = self.get_object()
         if request.user.is_superuser or instance.course.author == request.user:
             serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -153,6 +165,7 @@ class LessonViewSet(viewsets.ModelViewSet):
             return Response({'message': 'You are not allowed to update this lesson'}, status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, *args, **kwargs):
+        """Agar lessonning agasi bo'lmasa o'chira olmasligi uchun"""
         instance = self.get_object()
         if request.user.is_superuser or instance.course.author == request.user:
             self.perform_destroy(instance)
@@ -161,6 +174,7 @@ class LessonViewSet(viewsets.ModelViewSet):
             return Response({'message': 'You are not allowed to delete this lesson'}, status=status.HTTP_403_FORBIDDEN)
 
     def retrieve(self, request, *args, **kwargs):
+        """Lesson haqida ma'lumotlarni ko'rish uchun"""
         instance = self.get_object()
 
         videos = Video.objects.filter(lesson=instance)
@@ -191,6 +205,8 @@ class VideoViewSet(viewsets.ModelViewSet):
             for follow in Follow.objects.filter(followed_user=lesson.author):
                 emails.append(follow.follower.email)
 
+            """Foydalanuvchinig followerlariga video qo'shgani haqidagi habarni jo'natish uchun """
+
             subject = "Siz obuna bo'lgan odam yangi video qo'shdi"
             message = (f"Username: {lesson.author.username}, email: {lesson.author.email}n/"
                        f"Lesson nomi: {lesson.title}n/"
@@ -204,6 +220,9 @@ class VideoViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+
+        """Agar videoning egasi bo'lmasa yangilash olmasligi uchun """
+
         if request.user.is_superuser or instance.lesson.course.author == request.user:
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -214,6 +233,9 @@ class VideoViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+
+        """Agar videoning authori bo'lmasa o'chira olmasligi uchun"""
+
         if request.user.is_superuser or instance.lesson.course.author == request.user:
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -221,6 +243,9 @@ class VideoViewSet(viewsets.ModelViewSet):
             return Response({'message': 'You are not allowed to delete this video'}, status=status.HTTP_403_FORBIDDEN)
 
     def retrieve(self, request, *args, **kwargs):
+
+        """Video haqida ma'lumotlarni ko'rish uchun """
+
         instance = self.get_object()
 
         likes = LikeVideo.objects.filter(video=instance)
@@ -248,6 +273,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
 
     def update(self, request, *args, **kwargs):
+
+        """Agar commentning egasi bo'lmasa yangilay olmasligi uchun """
+
         instance = self.get_object()
         if request.user == instance.user:
             serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -258,6 +286,9 @@ class CommentViewSet(viewsets.ModelViewSet):
             return Response({'message': 'You are not allowed to update this comment'}, status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, *args, **kwargs):
+
+        """Agar commentning egasi bo'lmasa o'chira olmasligi uchun olmasligi uchun """
+
         instance = self.get_object()
         if request.user == instance.user:
             self.perform_destroy(instance)
@@ -270,12 +301,20 @@ class LikeVideoViewSet(viewsets.ModelViewSet):
     queryset = LikeVideo.objects.all()
     serializer_class = LikeVideoSerializer
 
+    """Videoga like qo'shish uchun"""
+
     def create(self, request, *args, **kwargs):
         video_id = request.data.get('video')
         existing_dislike = DislikeVideo.objects.filter(video=video_id, user=request.user).first()
+
+        """Agar dislike mavjud bo'lsa uni o'chirishi uchun """
+
         if existing_dislike:
             existing_dislike.delete()
         existing_like = LikeVideo.objects.filter(video=video_id, user=request.user).first()
+
+        """Agar like mavjud bo'ladigan bo'lsa uni olib tashlashi uchun """
+
         if existing_like:
             existing_like.delete()
             return Response({'message': 'Like removed successfully'}, status=status.HTTP_204_NO_CONTENT)
@@ -289,12 +328,20 @@ class DislikeVideoViewSet(viewsets.ModelViewSet):
     queryset = DislikeVideo.objects.all()
     serializer_class = DislikeVideoSerializer
 
+    """Videoga dislike qo'shish uchun """
+
     def create(self, request, *args, **kwargs):
         video_id = request.data.get('video')
         existing_like = LikeVideo.objects.filter(video=video_id, user=request.user).first()
+
+        """Agar like mavjud bo'lsa uni olib tashlashi uchun """
+
         if existing_like:
             existing_like.delete()
         existing_dislike = DislikeVideo.objects.filter(video=video_id, user=request.user).first()
+
+        """Agar dislike mavjud bo'lsa uni olib tashlashi uchun """
+
         if existing_dislike:
             existing_dislike.delete()
             return Response({'message': 'Dislike removed successfully'}, status=status.HTTP_204_NO_CONTENT)
@@ -308,9 +355,14 @@ class FollowViewSet(viewsets.ModelViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
 
+    """Foydalanuvchiga follow bosish uchun"""
+
     def create(self, request, *args, **kwargs):
         followed_user_id = request.data.get('followed_user')
         existing_follow = Follow.objects.filter(followed_user_id=followed_user_id, follower=request.user).first()
+
+        """Agar oldin follow qilgan bo'lsa unga habar chiqarish uchun """
+
         if existing_follow:
             return Response({'message': 'You are already following this user'}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(data=request.data)
@@ -319,6 +371,9 @@ class FollowViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
+
+        """Followni olib tashlash uchun """
+
         instance = self.get_object()
         if instance.follower == request.user:
             instance.delete()
@@ -328,6 +383,9 @@ class FollowViewSet(viewsets.ModelViewSet):
 
 
 class SendNotificationAPIView(APIView):
+
+    """Ro'yxatdan o'tgan foydalanuvchilarga habar jo'natish jo'natish uchun"""
+
     permission_classes = [IsAdminUser]
 
     def get(self, request):
@@ -344,18 +402,17 @@ class SendNotificationAPIView(APIView):
 
             send_mail_to_email(emails, subject, message)
 
+            """Habar jo'natilganligi haqida habarni jo'natish"""
+
             return Response({'message': 'Notification sent'}, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-def send_mail_to_email(recive_emails, subject, message):
-    email_from = settings.EMAIL_HOST_USER
-    recipient_list = recive_emails
-    send_mail(subject, message, email_from, recipient_list)
-
-
 class SearchView(APIView):
+
+    """Biror bir ma'lumotni qidirish uchun """
+
     def get(self, request):
         query = request.GET.get('q', '')
         courses = Course.objects.filter(name__icontains=query)
@@ -371,4 +428,15 @@ class SearchView(APIView):
             'lessons': lesson_serializer.data,
             'videos': video_serializer.data,
         })
+
+
+def send_mail_to_email(recive_emails: list, subject: str, message: str):
+
+    """ Emailga habarlarni jo'natib berish uchun funksiya u recive_email, va subject,
+     message larni majburiy qabul qiladi"""
+
+    email_from = settings.EMAIL_HOST_USER
+    recipient_list = recive_emails
+    send_mail(subject, message, email_from, recipient_list)
+
 

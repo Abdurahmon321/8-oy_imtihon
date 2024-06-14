@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import UserProfile, Course, Lesson, Video, Comment, LikeVideo, DislikeVideo, Follow
 
+
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     """User profiledagi ma'lumotlarni admin panelda chiqarish uchun"""
@@ -60,4 +61,3 @@ class DislikeVideoAdmin(admin.ModelAdmin):
 class FollowAdmin(admin.ModelAdmin):
     """Followdagi ma'lumotlarni admin panelda chiqarish uchun"""
     list_display = ('follower', 'followed_user', 'created_at')
-
